@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mental Wellness Tracker</title>
+    <!-- Bootstrap CDN -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-light">
+
+<div class="container py-5">
+    <h1 class="mb-4 text-center">Mental Wellness Tracker</h1>
+
+    <!-- Add User Form -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <form id="userForm" class="row g-3">
+                <div class="col-md-5">
+                    <input type="text" id="name" class="form-control" placeholder="Name" required>
+                </div>
+                <div class="col-md-5">
+                    <input type="email" id="email" class="form-control" placeholder="Email" required>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">Add User</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Mood Logging Form -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <h2 class="h5 mb-3">Log Mood</h2>
+            <form id="moodForm" class="row g-3">
+                <div class="col-md-3">
+                    <select id="userSelect" class="form-select" required>
+                        <option value="">Select User</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select id="moodSelect" class="form-select" required>
+                        <option value="">Select Mood</option>
+                        <option value="Happy">Happy</option>
+                        <option value="Sad">Sad</option>
+                        <option value="Anxious">Anxious</option>
+                        <option value="Neutral">Neutral</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select id="linkedActivity" class="form-select">
+                        <option value="">No Activity</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="text" id="moodNote" class="form-control" placeholder="Optional note">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success w-100">Log Mood</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Mood Trend Graph -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <h2 class="h5 mb-3">Mood Trend</h2>
+            <canvas id="moodChart" height="150"></canvas>
+        </div>
+    </div>
+
+    <!-- Physical Activity Form -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <h2 class="h5 mb-3">Log Physical Activity</h2>
+            <form id="activityForm" class="row g-3">
+                <div class="col-md-3">
+                    <select id="activityUserSelect" class="form-select" required>
+                        <option value="">Select User</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <select id="activityType" class="form-select" required>
+                        <option value="">Select Activity</option>
+                        <option value="Running">Running</option>
+                        <option value="Walking">Walking</option>
+                        <option value="Yoga">Yoga</option>
+                        <option value="Gym">Gym</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <input type="number" id="activityDuration" class="form-control" placeholder="Minutes" required>
+                </div>
+                <div class="col-md-2">
+                    <input type="date" id="activityDate" class="form-control" required>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success w-100">Log Activity</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Users Table -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h5 mb-3">All Users</h2>
+            <table class="table table-striped" id="usersTable">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Mood Table -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h5 mb-3">Mood History</h2>
+            <table class="table table-striped" id="moodsTable">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Mood</th>
+                        <th>Linked Activity</th>
+                        <th>Note</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Activity Table -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <h2 class="h5 mb-3">Physical Activity History</h2>
+            <table class="table table-striped" id="activityTable">
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Activity</th>
+                        <th>Duration (min)</th>
+                        <th>Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+const apiUrl = 'http://localhost:8080/users';
+const moodApi = 'http://localhost:8080/moods';
+const activityApi = 'http://localhost:8080/activities';
+
+const userSelect = document.getElementById('userSelect');
+const activityUserSelect = document.getElementById('activityUserSelect');
+const linkedActivity = document.getElementById('linkedActivity');
+
+let usersMap = {};
+let activitiesMap = {};
+let moodChart;
+
+// --- Load Users ---
+async function loadUsers() {
+    const res = await fetch(apiUrl);
+    const users = await res.json();
+    const tbody = document.querySelector('#usersTable tbody');
+    tbody.innerHTML = '';
+    usersMap = {};
+    users.forEach(u => {
+        usersMap[u.id] = u.name;
+        tbody.innerHTML += `
+        <tr>
+            <td>${u.id}</td>
+            <td>${u.name}</td>
+            <td>${u.email}</td>
+            <td>
+                <button class="btn btn-warning btn-sm me-1" onclick="editUser(${u.id})">Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteUser(${u.id})">Delete</button>
+            </td>
+        </tr>`;
+    });
+    userSelect.innerHTML = '<option value="">Select User</option>';
+    activityUserSelect.innerHTML = '<option value="">Select User</option>';
+    users.forEach(u => {
+        userSelect.innerHTML += `<option value="${u.id}">${u.name}</option>`;
+        activityUserSelect.innerHTML += `<option value="${u.id}">${u.name}</option>`;
+    });
+}
+
+// --- Load Activities ---
+async function loadActivities() {
+    const res = await fetch(activityApi);
+    const activities = await res.json();
+    const tbody = document.querySelector('#activityTable tbody');
+    tbody.innerHTML = '';
+    activitiesMap = {};
+    activities.forEach(a => {
+        activitiesMap[a.id] = a.type;
+        const name = usersMap[a.userId] || 'Unknown';
+        tbody.innerHTML += `
+        <tr>
+            <td>${name}</td>
+            <td>${a.type}</td>
+            <td>${a.duration}</td>
+            <td>${a.date}</td>
+            <td>
+                <button class="btn btn-warning btn-sm me-1" onclick="editActivity(${a.id})">Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteActivity(${a.id})">Delete</button>
+            </td>
+        </tr>`;
+    });
+    populateLinkedActivities();
+}
+
+// --- Populate linked activity dropdown for Mood ---
+async function populateLinkedActivities() {
+    const userId = Number(userSelect.value);
+    const date = new Date().toISOString().split('T')[0];
+    linkedActivity.innerHTML = '<option value="">No Activity</option>';
+    Object.keys(activitiesMap).forEach(id => {
+        const activity = activitiesMap[id];
+        // Ideally check userId/date match if backend supports
+        linkedActivity.innerHTML += `<option value="${id}">${activity}</option>`;
+    });
+}
+
+// Update linked activity when user changes
+userSelect.addEventListener('change', populateLinkedActivities);
+
+// --- Load Moods ---
+async function loadMoods() {
+    const res = await fetch(moodApi);
+    const moods = await res.json();
+    const tbody = document.querySelector('#moodsTable tbody');
+    tbody.innerHTML = '';
+    const moodCounts = { Happy:0, Sad:0, Anxious:0, Neutral:0 };
+    moods.forEach(m => {
+        const name = usersMap[m.userId] || 'Unknown';
+        const activityName = m.activityId ? activitiesMap[m.activityId] || 'Unknown' : '';
+        moodCounts[m.mood] = (moodCounts[m.mood] || 0) + 1;
+        tbody.innerHTML += `
+        <tr>
+            <td>${name}</td>
+            <td>${m.mood}</td>
+            <td>${activityName}</td>
+            <td>${m.note || ''}</td>
+            <td>${m.date}</td>
+            <td>
+                <button class="btn btn-warning btn-sm me-1" onclick="editMood(${m.id})">Edit</button>
+                <button class="btn btn-danger btn-sm" onclick="deleteMood(${m.id})">Delete</button>
+            </td>
+        </tr>`;
+    });
+
+    if(moodChart) moodChart.destroy();
+    const ctx = document.getElementById('moodChart').getContext('2d');
+    moodChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(moodCounts),
+            datasets: [{
+                label: 'Mood Count',
+                data: Object.values(moodCounts),
+                backgroundColor: ['#4caf50','#f44336','#ff9800','#9e9e9e']
+            }]
+        },
+        options: { responsive:true, plugins:{legend:{display:false}} }
+    });
+}
+
+// --- Form Handlers ---
+document.getElementById('userForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    await fetch(apiUrl,{ method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+            name: document.getElementById('name').value,
+            email: document.getElementById('email').value
+        }) });
+    document.getElementById('userForm').reset();
+    loadUsers().then(loadMoods).then(loadActivities);
+});
+
+document.getElementById('activityForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    await fetch(activityApi,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+            userId: Number(activityUserSelect.value),
+            type: document.getElementById('activityType').value,
+            duration: Number(document.getElementById('activityDuration').value),
+            date: document.getElementById('activityDate').value
+        })
+    });
+    document.getElementById('activityForm').reset();
+    loadActivities();
+});
+
+document.getElementById('moodForm').addEventListener('submit', async e => {
+    e.preventDefault();
+    await fetch(moodApi,{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+            userId: Number(userSelect.value),
+            mood: document.getElementById('moodSelect').value,
+            note: document.getElementById('moodNote').value,
+            date: new Date().toISOString().split('T')[0],
+            activityId: Number(linkedActivity.value) || null
+        })
+    });
+    document.getElementById('moodForm').reset();
+    loadMoods();
+});
+
+// --- Delete / Edit Functions ---
+async function deleteUser(id){ if(confirm('Delete user?')) await fetch(`${apiUrl}/${id}`,{method:'DELETE'}); loadUsers().then(loadMoods).then(loadActivities);}
+async function deleteMood(id){ if(confirm('Delete mood?')) await fetch(`${moodApi}/${id}`,{method:'DELETE'}); loadMoods();}
+async function deleteActivity(id){ if(confirm('Delete activity?')) await fetch(`${activityApi}/${id}`,{method:'DELETE'}); loadActivities();}
+
+async function editUser(id){
+    const name = prompt('New Name:');
+    const email = prompt('New Email:');
+    if(name && email){
+        await fetch(`${apiUrl}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email})});
+        loadUsers();
+    }
+}
+
+async function editMood(id){
+    const mood = prompt('New Mood (Happy, Sad, Anxious, Neutral):');
+    const note = prompt('New Note:');
+    if(mood){
+        await fetch(`${moodApi}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({mood,note})});
+        loadMoods();
+    }
+}
+
+async function editActivity(id){
+    const type = prompt('New Activity (Running, Walking, Yoga, Gym):');
+    const duration = prompt('Duration (minutes):');
+    const date = prompt('Date (YYYY-MM-DD):');
+    if(type && duration && date){
+        await fetch(`${activityApi}/${id}`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({type,duration:Number(duration),date})});
+        loadActivities();
+    }
+}
+
+// --- Initial Load ---
+loadUsers().then(loadMoods).then(loadActivities);
+</script>
+
+</body>
+</html>
